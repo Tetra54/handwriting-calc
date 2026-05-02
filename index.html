@@ -30,13 +30,12 @@
     }
     
     /* The Smart Canvas */
-    myscript-math-web {
-      flex-grow: 1;
-      width: 100vw;
-      background: #ffffff;
-      /* Customizing the pen color to a nice blue */
-      --myscript-math-web-line-color: #1A73E8;
-      --myscript-math-web-line-width: 3;
+ myscript-math-web {
+  display: block;
+  width: 100%;
+  height: 70vh; /* This forces it to take up space */
+  background: #ffffff;
+  touch-action: none; /* This tells the tablet: 'Let me draw!' */
     }
 
     .toolbar {
