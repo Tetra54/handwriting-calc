@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>MyScript Math Solver</title>
+  <title>Handwritten Math Solver</title>
 
   <!-- MyScript iink -->
   <script src="https://unpkg.com/iink-js@latest/dist/iink.min.js"></script>
@@ -56,11 +56,11 @@ window.addEventListener("load", () => {
 
   editor = iink.register(document.getElementById("editor"), {
     recognitionParams: {
-      type: "MATH"
-    },
-    server: {
-      applicationKey: "4747c24f-95e3-492e-83e6-d0b9cd24f6da",
-      hmacKey: "501a3333-33f4-487d-adb5-ea0bbe643ac2"
+      type: "MATH",
+      server: {
+        applicationKey: "4747c24f-95e3-492e-83e6-d0b9cd24f6da",
+        hmacKey: "501a3333-33f4-487d-adb5-ea0bbe643ac2"
+      }
     }
   });
 
