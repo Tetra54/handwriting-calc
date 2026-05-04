@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Handwriting Math Solver</title>
+  <title>Math Solver</title>
+
   <script src="https://unpkg.com/iink-js@latest/dist/iink.min.js"></script>
 
   <style>
@@ -9,100 +10,88 @@
       font-family: Arial;
       text-align: center;
       background: #f5f5f5;
+      margin: 0;
+      padding: 0;
     }
 
     h1 {
-      margin-top: 20px;
+      margin: 15px;
     }
 
     #editor {
-      width: 90%;
+      width: 95%;
       height: 300px;
-      margin: 20px auto;
+      margin: 10px auto;
       border: 2px solid #333;
       background: white;
-    }
-
-    .btns {
-      margin-top: 10px;
+      touch-action: none; /* 🔥 IMPORTANT FIX */
     }
 
     button {
       padding: 10px 20px;
-      margin: 5px;
+      margin: 10px;
       border: none;
       background: #333;
       color: white;
-      font-size: 16px;
       border-radius: 5px;
     }
 
-    button:hover {
-      background: #555;
-    }
-
     #output {
+      font-size: 20px;
       margin-top: 20px;
-      font-size: 22px;
-      font-weight: bold;
     }
   </style>
 </head>
 
 <body>
 
-  <h1>Math Solver</h1>
+<h1>Math Solver</h1>
 
-  <div id="editor"></div>
+<div id="editor"></div>
 
-  <div class="btns">
-    <button onclick="solve()">Solve</button>
-    <button onclick="clearBoard()">Clear</button>
-  </div>
+<button onclick="solve()">Solve</button>
+<button onclick="clearBoard()">Clear</button>
 
-  <div id="output"></div>
+<div id="output"></div>
 
-  <script>
-    const editorElement = document.getElementById("editor");
+<script>
+  const editorElement = document.getElementById("editor");
 
-    const editor = iink.Editor.create(editorElement, {
-      configuration: {
-        server: {
-          applicationKey: "601cba55-236d-47fd-899b-b4892faae6fd",
-          hmacKey: "f7da3ed8-7e93-452b-ba1e-1a6f18248422"
-        },
-        recognitionParams: {
-          type: "MATH"
-        }
+  const editor = iink.Editor.create(editorElement, {
+    configuration: {
+      server: {
+        applicationKey: "601cba55-236d-47fd-899b-b4892faae6fd",
+        hmacKey: "f7da3ed8-7e93-452b-ba1e-1a6f18248422"
+      },
+      recognitionParams: {
+        type: "MATH"
+      }
+    }
+  });
+
+  function solve() {
+    editor.getContent().then(result => {
+      let expr = result["text/plain"];
+
+      if (!expr) {
+        document.getElementById("output").innerText = "Nothing detected";
+        return;
+      }
+
+      try {
+        let answer = eval(expr);
+        document.getElementById("output").innerText = expr + " = " + answer;
+      } catch {
+        document.getElementById("output").innerText = "Invalid expression";
       }
     });
+  }
 
-    function solve() {
-      editor.getContent().then(result => {
-        console.log(result);
-
-        let expr = result["text/plain"];
-
-        if (!expr) {
-          document.getElementById("output").innerText = "Nothing detected";
-          return;
-        }
-
-        try {
-          let answer = eval(expr);
-          document.getElementById("output").innerText =
-            expr + " = " + answer;
-        } catch {
-          document.getElementById("output").innerText = "Invalid expression";
-        }
-      });
-    }
-
-    function clearBoard() {
-      editor.clear();
-      document.getElementById("output").innerText = "";
-    }
-  </script>
+  function clearBoard() {
+    editor.clear();
+    document.getElementById("output").innerText = "";
+  }
+</script>
 
 </body>
 </html>
