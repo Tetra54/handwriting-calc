@@ -1,96 +1,95 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Math Solver</title>
+  <meta charset="UTF-8">
+  <title>MyScript Math Solver</title>
 
+  <!-- MyScript iink -->
   <script src="https://unpkg.com/iink-js@latest/dist/iink.min.js"></script>
+
+  <!-- Math.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.0/math.min.js"></script>
 
   <style>
     body {
       font-family: Arial;
       text-align: center;
       background: #f5f5f5;
-      margin: 0;
-      padding: 0;
-    }
-
-    h1 {
-      margin: 15px;
     }
 
     #editor {
-      width: 95%;
+      width: 600px;
       height: 300px;
-      margin: 10px auto;
-      border: 2px solid #333;
+      border: 2px solid black;
+      margin: 20px auto;
       background: white;
-      touch-action: none; /* 🔥 IMPORTANT FIX */
     }
 
     button {
       padding: 10px 20px;
       margin: 10px;
-      border: none;
-      background: #333;
-      color: white;
-      border-radius: 5px;
+      font-size: 16px;
     }
 
     #output {
       font-size: 20px;
-      margin-top: 20px;
+      margin-top: 10px;
     }
   </style>
 </head>
 
 <body>
 
-<h1>Math Solver</h1>
+<h2>✍️ Handwritten Math Solver</h2>
 
 <div id="editor"></div>
 
 <button onclick="solve()">Solve</button>
-<button onclick="clearBoard()">Clear</button>
+<button onclick="clearInk()">Clear</button>
 
 <div id="output"></div>
 
 <script>
-  const editorElement = document.getElementById("editor");
+let editor;
 
-  const editor = iink.Editor.create(editorElement, {
-    configuration: {
-      server: {
-        applicationKey: "601cba55-236d-47fd-899b-b4892faae6fd",
-        hmacKey: "f7da3ed8-7e93-452b-ba1e-1a6f18248422"
-      },
-      recognitionParams: {
-        type: "MATH"
-      }
+window.addEventListener("load", () => {
+
+  editor = iink.register(document.getElementById("editor"), {
+    recognitionParams: {
+      type: "MATH"
+    },
+    server: {
+      applicationKey: "4747c24f-95e3-492e-83e6-d0b9cd24f6da",
+      hmacKey: "501a3333-33f4-487d-adb5-ea0bbe643ac2"
     }
   });
 
-  function solve() {
-    editor.getContent().then(result => {
-      let expr = result["text/plain"];
+});
 
-      if (!expr) {
-        document.getElementById("output").innerText = "Nothing detected";
-        return;
-      }
+function solve() {
+  editor.export_().then(result => {
+    console.log(result);
 
-      try {
-        let answer = eval(expr);
-        document.getElementById("output").innerText = expr + " = " + answer;
-      } catch {
-        document.getElementById("output").innerText = "Invalid expression";
-      }
-    });
-  }
+    const expr = result["text/plain"];
 
-  function clearBoard() {
-    editor.clear();
-    document.getElementById("output").innerText = "";
-  }
+    if (!expr) {
+      document.getElementById("output").innerText = "Nothing detected";
+      return;
+    }
+
+    try {
+      const answer = math.evaluate(expr);
+      document.getElementById("output").innerText = expr + " = " + answer;
+    } catch {
+      document.getElementById("output").innerText = "Invalid expression";
+    }
+  });
+}
+
+function clearInk() {
+  editor.clear();
+  document.getElementById("output").innerText = "";
+}
 </script>
 
 </body>
