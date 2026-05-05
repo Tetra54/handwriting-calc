@@ -1,82 +1,153 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Handwritten Math Solver</title>
+<meta charset="UTF-8">
+<title>Handwritten Math Solver</title>
 
-  <!-- MyScript SDK -->
-  <script src="https://unpkg.com/myscript"></script>
+<!-- TensorFlow -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
 
-  <!-- Math.js -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.0/math.min.js"></script>
+<!-- Math.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.0/math.min.js"></script>
 
-  <style>
-    body {
-      font-family: Arial;
-      text-align: center;
-      background: #f5f5f5;
-    }
+<style>
+body {
+  font-family: Arial;
+  text-align: center;
+  background: #f5f5f5;
+}
 
-    #editor {
-      height: 300px;
-      border: 2px solid black;
-      margin: 20px;
-      background: white;
-    }
+#canvas {
+  width: 90%;
+  max-width: 800px;
+  height: 300px;
+  border: 2px solid black;
+  background: white;
+  margin: 20px auto;
+  display: block;
+  touch-action: none;
+}
 
-    button {
-      padding: 10px 20px;
-      font-size: 16px;
-      margin: 10px;
-    }
-  </style>
+button {
+  padding: 10px 20px;
+  font-size: 16px;
+  margin: 10px;
+}
+
+#output {
+  font-size: 20px;
+}
+</style>
 </head>
 
 <body>
 
-  <h2>✍️ Handwritten Math Solver</h2>
+<h2>✍️ Handwritten Math Solver</h2>
 
-  <div id="editor"></div>
+<canvas id="canvas"></canvas>
 
-  <button onclick="solve()">Solve</button>
+<button onclick="solve()">Solve</button>
+<button onclick="clearCanvas()">Clear</button>
 
-  <h3 id="output">Draw something like 2 + 1</h3>
+<h3 id="output">Draw something like 2 + 1</h3>
 
-  <script>
-    const editor = MyScript.register({
-      element: document.getElementById('editor'),
-      recognitionParams: {
-        type: 'MATH'
-      },
-      server: {
-        applicationKey: "46716306-113a-4c3e-a4b8-05d08eb034b4",
-        hmacKey: "7feecad2-c0d6-4265-b2c1-ce4422fa0a18"
-      }
-    });
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
 
-    function solve() {
-      editor.getContent().then(result => {
-        console.log(result); // debug
+canvas.width = canvas.offsetWidth;
+canvas.height = canvas.offsetHeight;
 
-        try {
-          let expression = result["text/plain"];
+let drawing = false;
 
-          if (!expression) {
-            document.getElementById("output").innerText = "No input detected";
-            return;
-          }
+// 🖊 DRAWING SYSTEM (mouse + touch)
+function getPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: (e.touches ? e.touches[0].clientX : e.clientX) - rect.left,
+    y: (e.touches ? e.touches[0].clientY : e.clientY) - rect.top
+  };
+}
 
-          let answer = math.evaluate(expression);
+canvas.addEventListener("mousedown", () => drawing = true);
+canvas.addEventListener("mouseup", () => {
+  drawing = false;
+  ctx.beginPath();
+});
+canvas.addEventListener("mousemove", draw);
 
-          document.getElementById("output").innerText =
-            expression + " = " + answer;
+canvas.addEventListener("touchstart", () => drawing = true);
+canvas.addEventListener("touchend", () => {
+  drawing = false;
+  ctx.beginPath();
+});
+canvas.addEventListener("touchmove", draw);
 
-        } catch (e) {
-          document.getElementById("output").innerText = "Invalid expression";
-        }
-      });
-    }
-  </script>
+function draw(e) {
+  if (!drawing) return;
+
+  const pos = getPos(e);
+
+  ctx.lineWidth = 18;
+  ctx.lineCap = "round";
+  ctx.strokeStyle = "black";
+
+  ctx.lineTo(pos.x, pos.y);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(pos.x, pos.y);
+}
+
+// CLEAR
+function clearCanvas() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+// LOAD MODEL
+let model;
+
+async function loadModel() {
+  model = await tf.loadLayersModel(
+    "https://storage.googleapis.com/tfjs-models/tfjs/mnist/model.json"
+  );
+  console.log("Model loaded");
+}
+loadModel();
+
+// PREPROCESS
+function preprocess() {
+  let img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+  return tf.browser.fromPixels(img, 1)
+    .resizeNearestNeighbor([28, 28])
+    .toFloat()
+    .div(255)
+    .expandDims(0);
+}
+
+// SOLVE
+async function solve() {
+  if (!model) {
+    document.getElementById("output").innerText = "Model loading...";
+    return;
+  }
+
+  const tensor = preprocess();
+  const prediction = model.predict(tensor);
+  const digit = prediction.argMax(1).dataSync()[0];
+
+  // 👉 Basic logic (single digit demo)
+  let expression = digit;
+
+  try {
+    let result = math.evaluate(expression);
+    document.getElementById("output").innerText =
+      expression + " = " + result;
+  } catch {
+    document.getElementById("output").innerText = "Invalid input";
+  }
+}
+</script>
 
 </body>
 </html>
