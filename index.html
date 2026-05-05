@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <title>Handwritten Math Solver</title>
 
-  <!-- MyScript iink -->
-  <script src="https://unpkg.com/iink-js@latest/dist/iink.min.js"></script>
+  <!-- MyScript SDK -->
+  <script src="https://unpkg.com/myscript"></script>
 
   <!-- Math.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.0/math.min.js"></script>
@@ -18,76 +18,65 @@
     }
 
     #editor {
-      width: 600px;
       height: 300px;
       border: 2px solid black;
-      margin: 20px auto;
+      margin: 20px;
       background: white;
     }
 
     button {
       padding: 10px 20px;
-      margin: 10px;
       font-size: 16px;
-    }
-
-    #output {
-      font-size: 20px;
-      margin-top: 10px;
+      margin: 10px;
     }
   </style>
 </head>
 
 <body>
 
-<h2>✍️ Handwritten Math Solver</h2>
+  <h2>✍️ Handwritten Math Solver</h2>
 
-<div id="editor"></div>
+  <div id="editor"></div>
 
-<button onclick="solve()">Solve</button>
-<button onclick="clearInk()">Clear</button>
+  <button onclick="solve()">Solve</button>
 
-<div id="output"></div>
+  <h3 id="output">Draw something like 2 + 1</h3>
 
-<script>
-let editor;
-
-window.addEventListener("load", () => {
-
-  editor = iink.register(document.getElementById("editor"), {
-    recognitionParams: {
-      type: "MATH",
+  <script>
+    const editor = MyScript.register({
+      element: document.getElementById('editor'),
+      recognitionParams: {
+        type: 'MATH'
+      },
       server: {
-        applicationKey: "a6577504-c57e-4309-b70f-6599fdfcb3a1"
+        applicationKey: "46716306-113a-4c3e-a4b8-05d08eb034b4",
+        hmacKey: "7feecad2-c0d6-4265-b2c1-ce4422fa0a18"
       }
+    });
+
+    function solve() {
+      editor.getContent().then(result => {
+        console.log(result); // debug
+
+        try {
+          let expression = result["text/plain"];
+
+          if (!expression) {
+            document.getElementById("output").innerText = "No input detected";
+            return;
+          }
+
+          let answer = math.evaluate(expression);
+
+          document.getElementById("output").innerText =
+            expression + " = " + answer;
+
+        } catch (e) {
+          document.getElementById("output").innerText = "Invalid expression";
+        }
+      });
     }
-  });
-
-});
-
-function solve() {
-  editor.export_().then(result => {
-    const expr = result["text/plain"];
-
-    if (!expr) {
-      document.getElementById("output").innerText = "Nothing detected";
-      return;
-    }
-
-    try {
-      const answer = math.evaluate(expr);
-      document.getElementById("output").innerText = expr + " = " + answer;
-    } catch {
-      document.getElementById("output").innerText = "Invalid expression";
-    }
-  });
-}
-
-function clearInk() {
-  editor.clear();
-  document.getElementById("output").innerText = "";
-}
-</script>
+  </script>
 
 </body>
 </html>
