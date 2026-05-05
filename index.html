@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <title>Handwritten Math Solver</title>
 
-<!-- TensorFlow -->
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+<!-- MyScript iink -->
+<script src="https://unpkg.com/myscript/dist/iink.min.js"></script>
 
 <!-- Math.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.0/math.min.js"></script>
@@ -17,15 +17,11 @@ body {
   background: #f5f5f5;
 }
 
-#canvas {
-  width: 90%;
-  max-width: 800px;
+#editor {
   height: 300px;
   border: 2px solid black;
+  margin: 20px;
   background: white;
-  margin: 20px auto;
-  display: block;
-  touch-action: none;
 }
 
 button {
@@ -44,108 +40,60 @@ button {
 
 <h2>✍️ Handwritten Math Solver</h2>
 
-<canvas id="canvas"></canvas>
+<div id="editor"></div>
 
 <button onclick="solve()">Solve</button>
-<button onclick="clearCanvas()">Clear</button>
+<button onclick="clearInk()">Clear</button>
 
 <h3 id="output">Draw something like 2 + 1</h3>
 
 <script>
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
+let editor;
 
-canvas.width = canvas.offsetWidth;
-canvas.height = canvas.offsetHeight;
-
-let drawing = false;
-
-// 🖊 DRAWING SYSTEM (mouse + touch)
-function getPos(e) {
-  const rect = canvas.getBoundingClientRect();
-  return {
-    x: (e.touches ? e.touches[0].clientX : e.clientX) - rect.left,
-    y: (e.touches ? e.touches[0].clientY : e.clientY) - rect.top
-  };
+// ✅ INIT EDITOR PROPERLY
+async function init() {
+  editor = await iink.register(document.getElementById("editor"), {
+    recognitionParams: {
+      type: "MATH",
+      protocol: "REST",
+      apiVersion: "V4",
+      server: {
+        applicationKey: "YOUR_APPLICATION_KEY",
+        hmacKey: "YOUR_HMAC_KEY"
+      }
+    }
+  });
 }
 
-canvas.addEventListener("mousedown", () => drawing = true);
-canvas.addEventListener("mouseup", () => {
-  drawing = false;
-  ctx.beginPath();
-});
-canvas.addEventListener("mousemove", draw);
-
-canvas.addEventListener("touchstart", () => drawing = true);
-canvas.addEventListener("touchend", () => {
-  drawing = false;
-  ctx.beginPath();
-});
-canvas.addEventListener("touchmove", draw);
-
-function draw(e) {
-  if (!drawing) return;
-
-  const pos = getPos(e);
-
-  ctx.lineWidth = 18;
-  ctx.lineCap = "round";
-  ctx.strokeStyle = "black";
-
-  ctx.lineTo(pos.x, pos.y);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(pos.x, pos.y);
-}
+init();
 
 // CLEAR
-function clearCanvas() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-}
-
-// LOAD MODEL
-let model;
-
-async function loadModel() {
-  model = await tf.loadLayersModel(
-    "https://storage.googleapis.com/tfjs-models/tfjs/mnist/model.json"
-  );
-  console.log("Model loaded");
-}
-loadModel();
-
-// PREPROCESS
-function preprocess() {
-  let img = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-  return tf.browser.fromPixels(img, 1)
-    .resizeNearestNeighbor([28, 28])
-    .toFloat()
-    .div(255)
-    .expandDims(0);
+function clearInk() {
+  if (editor) editor.clear();
 }
 
 // SOLVE
-async function solve() {
-  if (!model) {
-    document.getElementById("output").innerText = "Model loading...";
-    return;
-  }
+function solve() {
+  if (!editor) return;
 
-  const tensor = preprocess();
-  const prediction = model.predict(tensor);
-  const digit = prediction.argMax(1).dataSync()[0];
+  editor.getContent().then(result => {
+    try {
+      let expression = result["text/plain"];
 
-  // 👉 Basic logic (single digit demo)
-  let expression = digit;
+      if (!expression) {
+        document.getElementById("output").innerText = "No input detected";
+        return;
+      }
 
-  try {
-    let result = math.evaluate(expression);
-    document.getElementById("output").innerText =
-      expression + " = " + result;
-  } catch {
-    document.getElementById("output").innerText = "Invalid input";
-  }
+      let answer = math.evaluate(expression);
+
+      document.getElementById("output").innerText =
+        expression + " = " + answer;
+
+    } catch (e) {
+      document.getElementById("output").innerText = "Invalid expression";
+    }
+  });
 }
 </script>
 
