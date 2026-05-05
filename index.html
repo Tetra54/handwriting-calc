@@ -4,10 +4,7 @@
 <meta charset="UTF-8">
 <title>Handwritten Math Solver</title>
 
-<!-- MyScript iink -->
-<script src="https://unpkg.com/myscript/dist/iink.min.js"></script>
-
-<!-- Math.js -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.0/math.min.js"></script>
 
 <style>
@@ -17,11 +14,12 @@ body {
   background: #f5f5f5;
 }
 
-#editor {
-  height: 300px;
+#canvas {
   border: 2px solid black;
-  margin: 20px;
   background: white;
+  margin: 20px auto;
+  display: block;
+  touch-action: none;
 }
 
 button {
@@ -40,62 +38,125 @@ button {
 
 <h2>✍️ Handwritten Math Solver</h2>
 
-<div id="editor"></div>
+<canvas id="canvas" width="300" height="300"></canvas>
 
-<button onclick="solve()">Solve</button>
-<button onclick="clearInk()">Clear</button>
+<br>
+<button onclick="predict()">Detect</button>
+<button onclick="clearCanvas()">Clear</button>
 
-<h3 id="output">Draw something like 2 + 1</h3>
+<h3 id="expression"></h3>
+<h3 id="output">Draw a digit</h3>
 
 <script>
-let editor;
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
 
-// ✅ INIT EDITOR PROPERLY
-async function init() {
-  editor = await iink.register(document.getElementById("editor"), {
-    recognitionParams: {
-      type: "MATH",
-      protocol: "REST",
-      apiVersion: "V4",
-      server: {
-        applicationKey: "YOUR_APPLICATION_KEY",
-        hmacKey: "YOUR_HMAC_KEY"
-      }
-    }
-  });
+let drawing = false;
+let model;
+let expression = "";
+
+// ✍️ DRAW (optimized)
+function getPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: (e.touches ? e.touches[0].clientX : e.clientX) - rect.left,
+    y: (e.touches ? e.touches[0].clientY : e.clientY) - rect.top
+  };
 }
 
-init();
+canvas.addEventListener("mousedown", () => drawing = true);
+canvas.addEventListener("mouseup", () => {
+  drawing = false;
+  ctx.beginPath();
+});
+canvas.addEventListener("mousemove", draw);
+
+canvas.addEventListener("touchstart", () => drawing = true);
+canvas.addEventListener("touchend", () => {
+  drawing = false;
+  ctx.beginPath();
+});
+canvas.addEventListener("touchmove", draw);
+
+function draw(e) {
+  if (!drawing) return;
+
+  const pos = getPos(e);
+
+  ctx.lineWidth = 20;
+  ctx.lineCap = "round";
+  ctx.strokeStyle = "black";
+
+  ctx.lineTo(pos.x, pos.y);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(pos.x, pos.y);
+}
 
 // CLEAR
-function clearInk() {
-  if (editor) editor.clear();
+function clearCanvas() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+// LOAD MODEL
+async function loadModel() {
+  model = await tf.loadLayersModel(
+    "https://storage.googleapis.com/tfjs-models/tfjs/mnist/model.json"
+  );
+  console.log("Model ready");
+}
+loadModel();
+
+// 🔥 BETTER PREPROCESSING (KEY IMPROVEMENT)
+function preprocess() {
+  let img = ctx.getImageData(0, 0, 300, 300);
+
+  let tensor = tf.browser.fromPixels(img, 1)
+    .resizeBilinear([28, 28])
+    .toFloat()
+    .div(255);
+
+  // invert colors (important for MNIST)
+  tensor = tf.sub(1, tensor);
+
+  return tensor.expandDims(0);
+}
+
+// DETECT DIGIT
+async function predict() {
+  if (!model) {
+    alert("Model loading...");
+    return;
+  }
+
+  let tensor = preprocess();
+  let prediction = model.predict(tensor);
+  let digit = prediction.argMax(1).dataSync()[0];
+
+  expression += digit;
+  document.getElementById("expression").innerText = expression;
+
+  clearCanvas();
 }
 
 // SOLVE
 function solve() {
-  if (!editor) return;
-
-  editor.getContent().then(result => {
-    try {
-      let expression = result["text/plain"];
-
-      if (!expression) {
-        document.getElementById("output").innerText = "No input detected";
-        return;
-      }
-
-      let answer = math.evaluate(expression);
-
-      document.getElementById("output").innerText =
-        expression + " = " + answer;
-
-    } catch (e) {
-      document.getElementById("output").innerText = "Invalid expression";
-    }
-  });
+  try {
+    let result = math.evaluate(expression);
+    document.getElementById("output").innerText =
+      expression + " = " + result;
+  } catch {
+    document.getElementById("output").innerText = "Invalid expression";
+  }
 }
 </script>
+
+<br>
+<button onclick="expression += '+'; document.getElementById('expression').innerText = expression;">+</button>
+<button onclick="expression += '-'; document.getElementById('expression').innerText = expression;">-</button>
+<button onclick="expression += '*'; document.getElementById('expression').innerText = expression;">*</button>
+<button onclick="expression += '/'; document.getElementById('expression').innerText = expression;">/</button>
+<button onclick="solve()">Solve</button>
 
 </body>
 </html>
